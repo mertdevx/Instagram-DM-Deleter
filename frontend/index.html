@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram DM Message Unsender</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Session Input View -->
+        <div id="sessionView" class="view">
+            <div class="container">
+                <h1>📱 Instagram DM Message Unsender</h1>
+                <p class="subtitle">Unsend your Instagram DM messages easily</p>
+                
+                <div class="session-form">
+                    <label for="sessionId">Instagram Session ID</label>
+                    <input 
+                        type="text" 
+                        id="sessionId" 
+                        placeholder="Paste your session ID here"
+                        autocomplete="off"
+                    >
+                    <button id="connectBtn" class="btn-primary">Connect</button>
+                </div>
+                
+                <div class="help">
+                    <details>
+                        <summary>ℹ️ How to get Session ID?</summary>
+                        <ol>
+                            <li>Open Instagram in your browser</li>
+                            <li>Press <kbd>F12</kbd> to open Developer Tools</li>
+                            <li>Go to <strong>Application</strong> → <strong>Cookies</strong> → <strong>instagram.com</strong></li>
+                            <li>Find <code>sessionid</code> and copy its value</li>
+                            <li>Paste it above and click Connect</li>
+                        </ol>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threads List View -->
+        <div id="threadsView" class="view hidden">
+            <div class="header">
+                <button id="logoutBtn" class="btn-secondary">← Logout</button>
+                <h2>💬 DM Conversations</h2>
+                <div class="spacer"></div>
+            </div>
+            
+            <div class="search-bar">
+                <input 
+                    type="search" 
+                    id="searchInput" 
+                    placeholder="🔍 Search conversations..."
+                >
+            </div>
+            
+            <div id="threadsList" class="threads-list">
+                <!-- Threads will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Messages View -->
+        <div id="messagesView" class="view hidden">
+            <div class="header">
+                <button id="backBtn" class="btn-secondary">← Back</button>
+                <h2 id="threadTitle">Conversation</h2>
+                <div class="spacer"></div>
+            </div>
+            
+            <div id="messagesList" class="messages-list">
+                <!-- Messages will be inserted here -->
+            </div>
+            
+            <div class="actions">
+                <button id="selectAllBtn" class="btn-secondary">
+                    Select All My Messages
+                </button>
+                <button id="unsendBtn" class="btn-danger" disabled>
+                    Unsend Selected (0)
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loader" class="loader hidden">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
