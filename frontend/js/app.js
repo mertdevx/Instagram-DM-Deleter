@@ -9,6 +9,9 @@ class App {
         this.currentThread = null;
         this.selectedMessages = new Set();
         this.allMessages = [];
+        this.nextMessagesCursor = null;
+        this.hasOlderMessages = false;
+        this.isLoadingOlderMessages = false;
         
         this.init();
         this.checkExistingSession();
@@ -54,6 +57,9 @@ class App {
         
         document.getElementById('unsendBtn')
             .addEventListener('click', () => this.handleUnsend());
+
+        document.getElementById('messagesList')
+            .addEventListener('scroll', () => this.handleMessagesScroll());
     }
     
     async handleConnect() {
@@ -101,7 +107,12 @@ class App {
         container.innerHTML = '';
         
         if (threads.length === 0) {
-            container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-light);">No conversations found</div>';
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: var(--md-on-surface-variant);">
+                    <span class="material-icons" style="font-size: 64px; opacity: 0.3;">forum</span>
+                    <p>No conversations found</p>
+                </div>
+            `;
             return;
         }
         
@@ -112,12 +123,22 @@ class App {
             const profilePic = thread.users[0]?.profile_pic_url || '';
             const title = thread.thread_title || 'Unknown';
             const preview = thread.last_message || 'No messages';
+            const messageCount = thread.message_count || 0;
             
             div.innerHTML = `
-                <img src="${profilePic}" alt="${title}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2256%22 height=%2256%22%3E%3Crect fill=%22%23ddd%22 width=%2256%22 height=%2256%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22%3E${title[0]?.toUpperCase() || '?'}%3C/text%3E%3C/svg%3E'">
+                <div class="thread-avatar">
+                    ${profilePic ?
+                        `<img src="${profilePic}" alt="${title}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.parentElement.innerHTML='<span class=\\'material-icons\\'>person</span>'">` :
+                        `<span class="material-icons">person</span>`
+                    }
+                </div>
                 <div class="thread-info">
-                    <div class="thread-title">${title}</div>
-                    <div class="thread-preview">${preview}</div>
+                    <div class="thread-name">${this.escapeHtml(title)}</div>
+                    <div class="thread-preview">${this.escapeHtml(preview)}</div>
+                </div>
+                <div class="thread-meta">
+                    ${messageCount > 0 ? `<span class="thread-count">${messageCount}</span>` : ''}
+                    <span class="material-icons" style="color: var(--md-on-surface-variant);">chevron_right</span>
                 </div>
             `;
             
@@ -139,13 +160,19 @@ class App {
     async openThread(thread) {
         this.currentThread = thread;
         this.selectedMessages.clear();
+        this.allMessages = [];
+        this.nextMessagesCursor = null;
+        this.hasOlderMessages = false;
+        this.isLoadingOlderMessages = false;
         this.ui.showLoader();
         
         try {
             const response = await this.api.getMessages(thread.thread_id);
-            this.allMessages = response.messages;
-            this.renderMessages(response.messages);
+            this.allMessages = this.normalizeMessages(response.messages);
+            this.nextMessagesCursor = response.next_cursor || null;
+            this.hasOlderMessages = Boolean(response.has_older && this.nextMessagesCursor);
             this.showMessagesView(thread.thread_title);
+            this.renderMessages(this.allMessages, { scrollToBottom: true });
         } catch (error) {
             this.ui.showToast('Failed to load messages', 'error');
         } finally {
@@ -153,27 +180,88 @@ class App {
         }
     }
     
-    renderMessages(messages) {
+    async handleMessagesScroll() {
+        const container = document.getElementById('messagesList');
+
+        if (
+            container.scrollTop > 80 ||
+            !this.currentThread ||
+            !this.hasOlderMessages ||
+            !this.nextMessagesCursor ||
+            this.isLoadingOlderMessages
+        ) {
+            return;
+        }
+
+        await this.loadOlderMessages();
+    }
+
+    async loadOlderMessages() {
+        const container = document.getElementById('messagesList');
+        const previousScrollHeight = container.scrollHeight;
+        this.isLoadingOlderMessages = true;
+
+        try {
+            const response = await this.api.getMessages(
+                this.currentThread.thread_id,
+                this.nextMessagesCursor
+            );
+            const olderMessages = this.normalizeMessages(response.messages);
+            const existingIds = new Set(this.allMessages.map(msg => msg.id));
+            const newOlderMessages = olderMessages.filter(msg => !existingIds.has(msg.id));
+
+            this.allMessages = [...newOlderMessages, ...this.allMessages];
+            this.nextMessagesCursor = response.next_cursor || null;
+            this.hasOlderMessages = Boolean(response.has_older && this.nextMessagesCursor);
+            this.renderMessages(this.allMessages, { scrollToBottom: false });
+
+            container.scrollTop = container.scrollHeight - previousScrollHeight;
+        } catch (error) {
+            this.ui.showToast(`Failed to load older messages: ${error.message}`, 'error');
+        } finally {
+            this.isLoadingOlderMessages = false;
+        }
+    }
+
+    normalizeMessages(messages) {
+        return [...messages].reverse();
+    }
+
+    renderMessages(messages, options = {}) {
         const container = document.getElementById('messagesList');
         container.innerHTML = '';
+        const { scrollToBottom = false } = options;
         
         if (messages.length === 0) {
-            container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-light);">No messages</div>';
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: var(--md-on-surface-variant);">
+                    <span class="material-icons" style="font-size: 64px; opacity: 0.3;">chat_bubble_outline</span>
+                    <p>No messages</p>
+                </div>
+            `;
             return;
         }
         
-        // Reverse to show oldest first
-        messages.reverse().forEach(msg => {
+        messages.forEach(msg => {
             const div = document.createElement('div');
-            div.className = `message ${msg.is_mine ? 'mine' : 'theirs'}`;
+            div.className = `message-item ${msg.is_mine ? 'my-message' : ''}`;
             
             if (msg.is_mine) {
                 div.innerHTML = `
-                    <input type="checkbox" data-msg-id="${msg.id}">
-                    <div class="message-content">${this.escapeHtml(msg.text || '(No text)')}</div>
+                    <div class="message-checkbox">
+                        <input type="checkbox" data-msg-id="${msg.id}">
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-sender">You</span>
+                            <span class="message-time">${this.formatTime(msg.timestamp)}</span>
+                        </div>
+                        <div class="message-text">${this.escapeHtml(msg.text || '(No text)')}</div>
+                    </div>
                 `;
                 
                 const checkbox = div.querySelector('input');
+                checkbox.checked = this.selectedMessages.has(msg.id);
                 checkbox.addEventListener('change', (e) => {
                     if (e.target.checked) {
                         this.selectedMessages.add(msg.id);
@@ -184,15 +272,45 @@ class App {
                 });
             } else {
                 div.innerHTML = `
-                    <div class="message-content">${this.escapeHtml(msg.text || '(No text)')}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-sender">${this.escapeHtml(msg.user_name || 'User')}</span>
+                            <span class="message-time">${this.formatTime(msg.timestamp)}</span>
+                        </div>
+                        <div class="message-text">${this.escapeHtml(msg.text || '(No text)')}</div>
+                    </div>
                 `;
             }
             
             container.appendChild(div);
         });
         
-        // Scroll to bottom
-        container.scrollTop = container.scrollHeight;
+        if (scrollToBottom) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+    
+    formatTime(timestamp) {
+        if (!timestamp) return '';
+        const normalizedTimestamp = typeof timestamp === 'string'
+            ? Date.parse(timestamp)
+            : timestamp * 1000;
+        const date = new Date(normalizedTimestamp);
+        if (Number.isNaN(date.getTime())) return '';
+        const now = new Date();
+        const diff = now - date;
+        
+        // Less than 1 minute
+        if (diff < 60000) return 'Just now';
+        // Less than 1 hour
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        // Less than 24 hours
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        // Less than 7 days
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+        
+        // Format as date
+        return date.toLocaleDateString();
     }
     
     escapeHtml(text) {
@@ -284,7 +402,11 @@ class App {
     }
     
     showMessagesView(title) {
-        document.getElementById('threadTitle').textContent = title;
+        const titleElement = document.getElementById('threadTitle');
+        titleElement.innerHTML = `
+            <span class="material-icons">chat_bubble</span>
+            <span>${this.escapeHtml(title)}</span>
+        `;
         this.ui.showView('messagesView');
     }
     

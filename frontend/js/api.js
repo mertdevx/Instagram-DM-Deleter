@@ -43,8 +43,14 @@ export class API {
         return this.request('/api/threads');
     }
 
-    async getMessages(threadId) {
-        return this.request(`/api/threads/${threadId}/messages`);
+    async getMessages(threadId, cursor = null, limit = 20) {
+        const params = new URLSearchParams({ limit: String(limit) });
+
+        if (cursor) {
+            params.set('cursor', cursor);
+        }
+
+        return this.request(`/api/threads/${threadId}/messages?${params.toString()}`);
     }
 
     async unsendMessages(threadId, messageIds) {

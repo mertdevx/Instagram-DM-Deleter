@@ -4,56 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instagram DM Message Unsender</title>
+    
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Roboto Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <div id="app">
         <!-- Session Input View -->
         <div id="sessionView" class="view">
-            <div class="container">
-                <h1>📱 Instagram DM Message Unsender</h1>
-                <p class="subtitle">Unsend your Instagram DM messages easily</p>
-                
-                <div class="session-form">
-                    <label for="sessionId">Instagram Session ID</label>
-                    <input 
-                        type="text" 
-                        id="sessionId" 
-                        placeholder="Paste your session ID here"
-                        autocomplete="off"
-                    >
-                    <button id="connectBtn" class="btn-primary">Connect</button>
+            <div class="mdc-card session-card">
+                <div class="card-header">
+                    <span class="material-icons header-icon">chat</span>
+                    <h1>Instagram DM Unsender</h1>
                 </div>
                 
-                <div class="help">
-                    <details>
-                        <summary>ℹ️ How to get Session ID?</summary>
-                        <ol>
-                            <li>Open Instagram in your browser</li>
-                            <li>Press <kbd>F12</kbd> to open Developer Tools</li>
-                            <li>Go to <strong>Application</strong> → <strong>Cookies</strong> → <strong>instagram.com</strong></li>
-                            <li>Find <code>sessionid</code> and copy its value</li>
-                            <li>Paste it above and click Connect</li>
-                        </ol>
-                    </details>
+                <div class="card-content">
+                    <p class="subtitle">Unsend your Instagram DM messages easily</p>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Instagram Session ID</label>
+                        <div class="input-wrapper">
+                            <span class="material-icons input-icon">vpn_key</span>
+                            <input 
+                                type="text" 
+                                id="sessionId" 
+                                class="mdc-input"
+                                placeholder="Paste your session ID here"
+                                autocomplete="off"
+                            >
+                        </div>
+                    </div>
+                    
+                    <button id="connectBtn" class="mdc-button mdc-button--raised">
+                        <span class="material-icons">login</span>
+                        <span>Connect</span>
+                    </button>
+                    
+                    <div class="help-section">
+                        <details class="mdc-expansion-panel">
+                            <summary>
+                                <span class="material-icons">help_outline</span>
+                                <span>How to get Session ID?</span>
+                            </summary>
+                            <div class="expansion-content">
+                                <ol>
+                                    <li>
+                                        <span class="material-icons step-icon">open_in_browser</span>
+                                        Open Instagram in your browser
+                                    </li>
+                                    <li>
+                                        <span class="material-icons step-icon">code</span>
+                                        Press <kbd>F12</kbd> to open Developer Tools
+                                    </li>
+                                    <li>
+                                        <span class="material-icons step-icon">storage</span>
+                                        Go to <strong>Application</strong> → <strong>Cookies</strong> → <strong>instagram.com</strong>
+                                    </li>
+                                    <li>
+                                        <span class="material-icons step-icon">search</span>
+                                        Find <code>sessionid</code> and copy its value
+                                    </li>
+                                    <li>
+                                        <span class="material-icons step-icon">content_paste</span>
+                                        Paste it above and click Connect
+                                    </li>
+                                </ol>
+                            </div>
+                        </details>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Threads List View -->
         <div id="threadsView" class="view hidden">
-            <div class="header">
-                <button id="logoutBtn" class="btn-secondary">← Logout</button>
-                <h2>💬 DM Conversations</h2>
-                <div class="spacer"></div>
+            <div class="mdc-top-app-bar">
+                <button id="logoutBtn" class="mdc-icon-button">
+                    <span class="material-icons">logout</span>
+                </button>
+                <h2 class="app-bar-title">
+                    <span class="material-icons">forum</span>
+                    <span>DM Conversations</span>
+                </h2>
             </div>
             
-            <div class="search-bar">
-                <input 
-                    type="search" 
-                    id="searchInput" 
-                    placeholder="🔍 Search conversations..."
-                >
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <span class="material-icons search-icon">search</span>
+                    <input 
+                        type="search" 
+                        id="searchInput" 
+                        class="mdc-search-input"
+                        placeholder="Search conversations..."
+                    >
+                </div>
             </div>
             
             <div id="threadsList" class="threads-list">
@@ -63,29 +111,39 @@
 
         <!-- Messages View -->
         <div id="messagesView" class="view hidden">
-            <div class="header">
-                <button id="backBtn" class="btn-secondary">← Back</button>
-                <h2 id="threadTitle">Conversation</h2>
-                <div class="spacer"></div>
+            <div class="mdc-top-app-bar">
+                <button id="backBtn" class="mdc-icon-button">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+                <h2 id="threadTitle" class="app-bar-title">
+                    <span class="material-icons">chat_bubble</span>
+                    <span>Conversation</span>
+                </h2>
             </div>
             
             <div id="messagesList" class="messages-list">
                 <!-- Messages will be inserted here -->
             </div>
             
-            <div class="actions">
-                <button id="selectAllBtn" class="btn-secondary">
-                    Select All My Messages
+            <div class="actions-bar">
+                <button id="selectAllBtn" class="mdc-button mdc-button--outlined">
+                    <span class="material-icons">select_all</span>
+                    <span>Select All My Messages</span>
                 </button>
-                <button id="unsendBtn" class="btn-danger" disabled>
-                    Unsend Selected (0)
+                <button id="unsendBtn" class="mdc-button mdc-button--raised mdc-button--danger" disabled>
+                    <span class="material-icons">delete_sweep</span>
+                    <span>Unsend Selected (0)</span>
                 </button>
             </div>
         </div>
 
         <!-- Loading Overlay -->
         <div id="loader" class="loader hidden">
-            <div class="spinner"></div>
+            <div class="mdc-circular-progress">
+                <svg class="spinner" viewBox="0 0 50 50">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+                </svg>
+            </div>
             <p>Loading...</p>
         </div>
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import uvicorn
@@ -79,6 +79,8 @@ async def get_threads(x_session_id: str = Header(...)):
 @app.get("/api/threads/{thread_id}/messages")
 async def get_messages(
     thread_id: str,
+    cursor: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
     x_session_id: str = Header(...)
 ):
     """Get messages from a thread"""
@@ -87,11 +89,13 @@ async def get_messages(
     
     try:
         client = sessions[x_session_id]
-        messages = client.get_thread_messages(thread_id)
+        result = client.get_thread_messages(thread_id, cursor=cursor, limit=limit)
         
         return {
             "success": True,
-            "messages": messages
+            "messages": result["messages"],
+            "next_cursor": result["next_cursor"],
+            "has_older": result["has_older"]
         }
     except Exception as e:
         raise HTTPException(

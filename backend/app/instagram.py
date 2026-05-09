@@ -1,6 +1,6 @@
 from instagrapi import Client
 from instagrapi.exceptions import ClientError
-from typing import List, Dict
+from typing import List, Dict, Optional
 import time
 import json
 
@@ -73,26 +73,64 @@ class InstagramClient:
             print(f"Error fetching threads: {e}")
             return []
     
-    def get_thread_messages(self, thread_id: str) -> List[Dict]:
-        """Get messages from a thread"""
-        messages = self.client.direct_messages(thread_id)
-        
+    def get_thread_messages(
+        self,
+        thread_id: str,
+        cursor: Optional[str] = None,
+        limit: int = 20
+    ) -> Dict:
+        """Get paginated messages from a thread using Instagram raw API"""
+        params = {
+            "visual_message_return_type": "unseen",
+            "direction": "older",
+            "seq_id": "0",
+            "limit": str(limit)
+        }
+
+        if cursor:
+            params["cursor"] = cursor
+
+        response = self.client.private_request(
+            f"direct_v2/threads/{thread_id}/",
+            params=params
+        )
+
+        thread = response.get("thread", {})
+        items = thread.get("items", [])
+        users_by_pk = {
+            str(user.get("pk")): user
+            for user in thread.get("users", [])
+        }
+
         # Ensure user_id is int for comparison
         my_user_id = int(self.user_id) if isinstance(self.user_id, str) else self.user_id
-        
+
         result = []
-        for msg in messages:
-            msg_user_id = int(msg.user_id) if isinstance(msg.user_id, str) else msg.user_id
-            
+        for item in items:
+            msg_user_id = item.get("user_id")
+            msg_user_id_int = int(msg_user_id) if msg_user_id is not None else 0
+            user = users_by_pk.get(str(msg_user_id), {})
+
+            timestamp_ms = item.get("timestamp") or item.get("client_context") or 0
+            try:
+                timestamp = int(timestamp_ms) / 1000000
+            except (TypeError, ValueError):
+                timestamp = 0
+
             result.append({
-                "id": str(msg.id),
-                "user_id": msg_user_id,
-                "text": msg.text or "",
-                "timestamp": msg.timestamp.isoformat(),
-                "is_mine": msg_user_id == my_user_id
+                "id": str(item.get("item_id", "")),
+                "user_id": msg_user_id_int,
+                "user_name": user.get("username", "User"),
+                "text": item.get("text") or "",
+                "timestamp": timestamp,
+                "is_mine": msg_user_id_int == my_user_id
             })
-        
-        return result
+
+        return {
+            "messages": result,
+            "next_cursor": thread.get("oldest_cursor"),
+            "has_older": bool(thread.get("has_older"))
+        }
     
     def unsend_messages(
         self,
