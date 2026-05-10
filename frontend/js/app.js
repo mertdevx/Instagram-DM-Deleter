@@ -3,7 +3,7 @@ import { UI } from './ui.js';
 
 class App {
     constructor() {
-        this.api = new API('http://localhost:8000');
+        this.api = new API(window.location.origin);
         this.ui = new UI();
         this.sessionId = localStorage.getItem('sessionId') || null;
         this.currentThread = null;

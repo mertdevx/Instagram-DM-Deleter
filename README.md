@@ -28,10 +28,10 @@ Ever sent a message you regret? Want to clean up your DM history or remove emoji
 
 <div align="center">
 
-### ⚡ One Command to Rule Them All
+### ⚡ One Docker Command to Rule Them All
 
 ```bash
-docker-compose up -d
+docker run -d --name instagram-dm-deleter -p 3000:80 ghcr.io/mertdevx/instagram-dm-deleter:latest
 ```
 
 **That's it!** Your app is running on `http://localhost:3000`
@@ -111,21 +111,34 @@ docker-compose up -d
 
 ### Prerequisites
 
-- 🐳 Docker & Docker Compose
+- 🐳 Docker
 - 📱 Instagram account
 
 ### Installation
 
 ```bash
-# 1️⃣ Clone the repository
+# Start the prebuilt production image
+docker run -d --name instagram-dm-deleter -p 3000:80 ghcr.io/mertdevx/instagram-dm-deleter:latest
+
+# Open in your browser
+# 🌐 http://localhost:3000
+```
+
+### Stop / Remove
+
+```bash
+docker stop instagram-dm-deleter
+docker rm instagram-dm-deleter
+```
+
+### Development Build
+
+If you want to build the project locally instead of using the prebuilt image:
+
+```bash
 git clone https://github.com/mertdevx/Instagram-DM-Deleter.git
 cd Instagram-DM-Deleter
-
-# 2️⃣ Start the application
-docker-compose up -d
-
-# 3️⃣ Open in your browser
-# 🌐 http://localhost:3000
+docker compose up --build
 ```
 
 ### Getting Your Session ID
@@ -268,6 +281,10 @@ Instagram-DM-Deleter/
 │   └── _metadata/             # Generated extension metadata
 │
 ├── 🐳 docker-compose.yml      # Multi-container setup
+├── 🐳 Dockerfile              # Single-image production build
+├── 🐳 docker/
+│   ├── nginx.conf             # Single-container nginx reverse proxy
+│   └── supervisord.conf       # Runs backend and nginx in one container
 ├── 🔧 .github/
 │   └── workflows/
 │       └── docker-build.yml   # CI/CD pipeline
