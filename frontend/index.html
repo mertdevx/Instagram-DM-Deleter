@@ -10,130 +10,168 @@
     <!-- Roboto Font -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=enterprise-2">
 </head>
 <body>
+    <div class="background-orb orb-one"></div>
+    <div class="background-orb orb-two"></div>
     <div id="app">
         <!-- Session Input View -->
         <div id="sessionView" class="view">
-            <div class="mdc-card session-card">
-                <div class="card-header">
-                    <span class="material-icons header-icon">chat</span>
-                    <h1>Instagram DM Unsender</h1>
-                </div>
-                
-                <div class="card-content">
-                    <p class="subtitle">Unsend your Instagram DM messages easily</p>
-                    
-                    <div class="input-group">
-                        <label class="input-label">Instagram Session ID</label>
-                        <div class="input-wrapper">
-                            <span class="material-icons input-icon">vpn_key</span>
-                            <input 
-                                type="text" 
-                                id="sessionId" 
-                                class="mdc-input"
-                                placeholder="Paste your session ID here"
-                                autocomplete="off"
-                            >
+            <div class="enterprise-login">
+                <section class="hero-panel">
+                    <div class="brand-row">
+                        <div class="brand-logo">DM</div>
+                        <span>Instagram DM Deleter</span>
+                    </div>
+                    <p class="eyebrow">Instagram DM Deleter</p>
+                    <h1>Delete your Instagram DM history with control.</h1>
+                    <p class="hero-copy">A focused workspace for loading conversations, reviewing message history, selecting your own messages and removing your reactions from one place.</p>
+                    <div class="hero-metrics">
+                        <div>
+                            <strong>Realtime</strong>
+                            <span>Session validation</span>
+                        </div>
+                        <div>
+                            <strong>Cursor</strong>
+                            <span>History loading</span>
+                        </div>
+                        <div>
+                            <strong>Local</strong>
+                            <span>Browser storage</span>
                         </div>
                     </div>
-                    
-                    <button id="connectBtn" class="mdc-button mdc-button--raised">
-                        <span class="material-icons">login</span>
-                        <span>Connect</span>
-                    </button>
-                    
-                    <div class="help-section">
-                        <details class="mdc-expansion-panel">
-                            <summary>
-                                <span class="material-icons">help_outline</span>
-                                <span>How to get Session ID?</span>
-                            </summary>
-                            <div class="expansion-content">
-                                <ol>
-                                    <li>
-                                        <span class="material-icons step-icon">open_in_browser</span>
-                                        Open Instagram in your browser
-                                    </li>
-                                    <li>
-                                        <span class="material-icons step-icon">code</span>
-                                        Press <kbd>F12</kbd> to open Developer Tools
-                                    </li>
-                                    <li>
-                                        <span class="material-icons step-icon">storage</span>
-                                        Go to <strong>Application</strong> → <strong>Cookies</strong> → <strong>instagram.com</strong>
-                                    </li>
-                                    <li>
-                                        <span class="material-icons step-icon">search</span>
-                                        Find <code>sessionid</code> and copy its value
-                                    </li>
-                                    <li>
-                                        <span class="material-icons step-icon">content_paste</span>
-                                        Paste it above and click Connect
-                                    </li>
-                                </ol>
-                            </div>
-                        </details>
+                </section>
+
+                <section class="mdc-card session-card auth-panel">
+                    <div class="auth-header">
+                        <span class="auth-kicker">Secure workspace</span>
+                        <h2>Connect session</h2>
+                        <p>Paste your Instagram session ID to open your DM dashboard.</p>
                     </div>
-                </div>
+                    <div class="card-content">
+                        <div class="feature-grid">
+                            <div class="feature-pill"><span class="material-icons">bolt</span><span>Fast</span></div>
+                            <div class="feature-pill"><span class="material-icons">lock</span><span>Local</span></div>
+                            <div class="feature-pill"><span class="material-icons">history</span><span>History</span></div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Instagram Session ID</label>
+                            <div class="input-wrapper">
+                                <span class="material-icons input-icon">vpn_key</span>
+                                <input 
+                                    type="text" 
+                                    id="sessionId" 
+                                    class="mdc-input"
+                                    placeholder="Paste your session ID here"
+                                    autocomplete="off"
+                                >
+                            </div>
+                        </div>
+                        
+                        <button id="connectBtn" class="mdc-button mdc-button--raised">
+                            <span class="material-icons">login</span>
+                            <span>Connect</span>
+                        </button>
+                        
+                        <div class="help-section">
+                            <details class="mdc-expansion-panel">
+                                <summary>
+                                    <span class="material-icons">help_outline</span>
+                                    <span>How to get Session ID?</span>
+                                </summary>
+                                <div class="expansion-content">
+                                    <ol>
+                                        <li>
+                                            <span class="material-icons step-icon">open_in_browser</span>
+                                            Open Instagram in your browser
+                                        </li>
+                                        <li>
+                                            <span class="material-icons step-icon">code</span>
+                                            Press <kbd>F12</kbd> to open Developer Tools
+                                        </li>
+                                        <li>
+                                            <span class="material-icons step-icon">storage</span>
+                                            Go to <strong>Application</strong> → <strong>Cookies</strong> → <strong>instagram.com</strong>
+                                        </li>
+                                        <li>
+                                            <span class="material-icons step-icon">search</span>
+                                            Find <code>sessionid</code> and copy its value
+                                        </li>
+                                        <li>
+                                            <span class="material-icons step-icon">content_paste</span>
+                                            Paste it above and click Connect
+                                        </li>
+                                    </ol>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
 
         <!-- Threads List View -->
         <div id="threadsView" class="view hidden">
-            <div class="mdc-top-app-bar">
-                <button id="logoutBtn" class="mdc-icon-button">
-                    <span class="material-icons">logout</span>
-                </button>
-                <h2 class="app-bar-title">
-                    <span class="material-icons">forum</span>
-                    <span>DM Conversations</span>
-                </h2>
-            </div>
-            
-            <div class="search-container">
-                <div class="search-wrapper">
-                    <span class="material-icons search-icon">search</span>
-                    <input 
-                        type="search" 
-                        id="searchInput" 
-                        class="mdc-search-input"
-                        placeholder="Search conversations..."
-                    >
+            <div class="surface-shell">
+                <div class="mdc-top-app-bar">
+                    <button id="logoutBtn" class="mdc-icon-button">
+                        <span class="material-icons">logout</span>
+                    </button>
+                    <h2 class="app-bar-title">
+                        <span class="material-icons">forum</span>
+                        <span>DM Conversations</span>
+                    </h2>
+                    <span id="threadsCount" class="status-chip">0 chats</span>
                 </div>
-            </div>
-            
-            <div id="threadsList" class="threads-list">
-                <!-- Threads will be inserted here -->
+                
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <span class="material-icons search-icon">search</span>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            class="mdc-search-input"
+                            placeholder="Search conversations..."
+                        >
+                    </div>
+                </div>
+                
+                <div id="threadsList" class="threads-list">
+                    <!-- Threads will be inserted here -->
+                </div>
             </div>
         </div>
 
         <!-- Messages View -->
         <div id="messagesView" class="view hidden">
-            <div class="mdc-top-app-bar">
-                <button id="backBtn" class="mdc-icon-button">
-                    <span class="material-icons">arrow_back</span>
-                </button>
-                <h2 id="threadTitle" class="app-bar-title">
-                    <span class="material-icons">chat_bubble</span>
-                    <span>Conversation</span>
-                </h2>
-            </div>
-            
-            <div id="messagesList" class="messages-list">
-                <!-- Messages will be inserted here -->
-            </div>
-            
-            <div class="actions-bar">
-                <button id="selectAllBtn" class="mdc-button mdc-button--outlined">
-                    <span class="material-icons">select_all</span>
-                    <span>Select All My Messages</span>
-                </button>
-                <button id="unsendBtn" class="mdc-button mdc-button--raised mdc-button--danger" disabled>
-                    <span class="material-icons">delete_sweep</span>
-                    <span>Unsend Selected (0)</span>
-                </button>
+            <div class="surface-shell messages-shell">
+                <div class="mdc-top-app-bar">
+                    <button id="backBtn" class="mdc-icon-button">
+                        <span class="material-icons">arrow_back</span>
+                    </button>
+                    <h2 id="threadTitle" class="app-bar-title">
+                        <span class="material-icons">chat_bubble</span>
+                        <span>Conversation</span>
+                    </h2>
+                    <span id="messagesCount" class="status-chip">0 messages</span>
+                </div>
+                
+                <div id="messagesList" class="messages-list">
+                    <!-- Messages will be inserted here -->
+                </div>
+                
+                <div class="actions-bar">
+                    <button id="selectAllBtn" class="mdc-button mdc-button--outlined">
+                        <span class="material-icons">select_all</span>
+                        <span>Select All My Messages</span>
+                    </button>
+                    <button id="unsendBtn" class="mdc-button mdc-button--raised mdc-button--danger" disabled>
+                        <span class="material-icons">delete_sweep</span>
+                        <span>Unsend Selected (0)</span>
+                    </button>
+                </div>
             </div>
         </div>
 

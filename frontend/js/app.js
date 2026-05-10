@@ -95,6 +95,7 @@ class App {
             const response = await this.api.getThreads();
             this.threads = response.threads;
             this.renderThreads(response.threads);
+            this.updateThreadsCount(response.threads.length);
         } catch (error) {
             this.ui.showToast('Failed to load conversations', 'error');
         } finally {
@@ -105,6 +106,7 @@ class App {
     renderThreads(threads) {
         const container = document.getElementById('threadsList');
         container.innerHTML = '';
+        this.updateThreadsCount(threads.length);
         
         if (threads.length === 0) {
             container.innerHTML = `
@@ -156,6 +158,13 @@ class App {
         
         this.renderThreads(filtered);
     }
+
+    updateThreadsCount(count) {
+        const countElement = document.getElementById('threadsCount');
+        if (countElement) {
+            countElement.textContent = `${count} chat${count === 1 ? '' : 's'}`;
+        }
+    }
     
     async openThread(thread) {
         this.currentThread = thread;
@@ -173,6 +182,7 @@ class App {
             this.hasOlderMessages = Boolean(response.has_older && this.nextMessagesCursor);
             this.showMessagesView(thread.thread_title);
             this.renderMessages(this.allMessages, { scrollToBottom: true });
+            this.updateMessagesCount();
         } catch (error) {
             this.ui.showToast('Failed to load messages', 'error');
         } finally {
@@ -214,6 +224,7 @@ class App {
             this.nextMessagesCursor = response.next_cursor || null;
             this.hasOlderMessages = Boolean(response.has_older && this.nextMessagesCursor);
             this.renderMessages(this.allMessages, { scrollToBottom: false });
+            this.updateMessagesCount();
 
             container.scrollTop = container.scrollHeight - previousScrollHeight;
         } catch (error) {
@@ -225,6 +236,14 @@ class App {
 
     normalizeMessages(messages) {
         return [...messages].reverse();
+    }
+
+    updateMessagesCount() {
+        const countElement = document.getElementById('messagesCount');
+        if (countElement) {
+            const olderLabel = this.hasOlderMessages ? ' · scroll up for more' : '';
+            countElement.textContent = `${this.allMessages.length} message${this.allMessages.length === 1 ? '' : 's'}${olderLabel}`;
+        }
     }
 
     renderMessages(messages, options = {}) {
@@ -240,6 +259,13 @@ class App {
                 </div>
             `;
             return;
+        }
+
+        if (this.hasOlderMessages) {
+            const hint = document.createElement('div');
+            hint.className = 'older-messages-hint';
+            hint.innerHTML = '<span class="material-icons">keyboard_double_arrow_up</span><span>Scroll up to load older messages</span>';
+            container.appendChild(hint);
         }
         
         messages.forEach(msg => {
@@ -269,8 +295,10 @@ class App {
                         this.selectedMessages.delete(msg.id);
                     }
                     this.updateUnsendButton();
+                    this.updateMessagesCount();
                 });
             } else {
+                const reactionsHtml = this.renderMyReactions(msg);
                 div.innerHTML = `
                     <div class="message-content">
                         <div class="message-header">
@@ -278,8 +306,23 @@ class App {
                             <span class="message-time">${this.formatTime(msg.timestamp)}</span>
                         </div>
                         <div class="message-text">${this.escapeHtml(msg.text || '(No text)')}</div>
+                        ${reactionsHtml}
                     </div>
                 `;
+
+                div.querySelectorAll('input[data-reaction-id]').forEach(checkbox => {
+                    checkbox.checked = this.selectedMessages.has(checkbox.dataset.reactionId);
+                    checkbox.addEventListener('change', (e) => {
+                        const reactionId = e.target.dataset.reactionId;
+                        if (e.target.checked) {
+                            this.selectedMessages.add(reactionId);
+                        } else {
+                            this.selectedMessages.delete(reactionId);
+                        }
+                        this.updateUnsendButton();
+                        this.updateMessagesCount();
+                    });
+                });
             }
             
             container.appendChild(div);
@@ -288,6 +331,27 @@ class App {
         if (scrollToBottom) {
             container.scrollTop = container.scrollHeight;
         }
+    }
+
+    renderMyReactions(msg) {
+        if (!msg.my_reactions || msg.my_reactions.length === 0) {
+            return '';
+        }
+
+        const reactions = msg.my_reactions.map(reaction => {
+            const emoji = reaction.emoji || '❤️';
+            const reactionId = `reaction:${msg.id}:${emoji}`;
+            const safeReactionId = this.escapeHtml(reactionId);
+            return `
+                <label class="reaction-select-pill" title="Select your reaction to remove">
+                    <input type="checkbox" data-reaction-id="${safeReactionId}">
+                    <span>${this.escapeHtml(emoji)}</span>
+                    <small>Your reaction</small>
+                </label>
+            `;
+        }).join('');
+
+        return `<div class="my-reactions-row">${reactions}</div>`;
     }
     
     formatTime(timestamp) {
@@ -356,6 +420,7 @@ class App {
     updateUnsendButton() {
         const count = this.selectedMessages.size;
         this.ui.setButtonState('unsendBtn', count === 0, `Unsend Selected (${count})`);
+        this.updateMessagesCount();
     }
     
     async handleUnsend() {
@@ -421,6 +486,8 @@ class App {
         this.selectedMessages.clear();
         this.threads = null;
         this.allMessages = [];
+        this.updateThreadsCount(0);
+        this.updateMessagesCount();
         
         this.ui.clearInput('sessionId');
         this.ui.showView('sessionView');

@@ -1,6 +1,8 @@
 <div align="center">
 
-# 📱 Instagram DM Deleter
+<img src="extensions/icon.svg" alt="Instagram DM Deleter icon" width="112" height="112">
+
+# Instagram DM Deleter
 
 ### 🚀 Effortlessly delete your Instagram DM messages with a beautiful, modern interface
 

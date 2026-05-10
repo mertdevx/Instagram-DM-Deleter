@@ -110,6 +110,7 @@ class InstagramClient:
             msg_user_id = item.get("user_id")
             msg_user_id_int = int(msg_user_id) if msg_user_id is not None else 0
             user = users_by_pk.get(str(msg_user_id), {})
+            item_id = str(item.get("item_id", ""))
 
             timestamp_ms = item.get("timestamp") or item.get("client_context") or 0
             try:
@@ -117,13 +118,17 @@ class InstagramClient:
             except (TypeError, ValueError):
                 timestamp = 0
 
+            reactions = self._extract_my_reactions(item, my_user_id)
+
             result.append({
-                "id": str(item.get("item_id", "")),
+                "id": item_id,
                 "user_id": msg_user_id_int,
                 "user_name": user.get("username", "User"),
                 "text": item.get("text") or "",
                 "timestamp": timestamp,
-                "is_mine": msg_user_id_int == my_user_id
+                "is_mine": msg_user_id_int == my_user_id,
+                "my_reactions": reactions,
+                "has_my_reactions": len(reactions) > 0
             })
 
         return {
@@ -131,6 +136,37 @@ class InstagramClient:
             "next_cursor": thread.get("oldest_cursor"),
             "has_older": bool(thread.get("has_older"))
         }
+
+    def _extract_my_reactions(self, item: Dict, my_user_id: int) -> List[Dict]:
+        """Extract reactions made by the current user from a raw DM item"""
+        reactions = []
+        reaction_data = item.get("reactions") or {}
+
+        reaction_candidates = []
+        if isinstance(reaction_data, dict):
+            reaction_candidates.extend(reaction_data.get("emojis", []) or [])
+            reaction_candidates.extend(reaction_data.get("likes", []) or [])
+        elif isinstance(reaction_data, list):
+            reaction_candidates.extend(reaction_data)
+
+        for reaction in reaction_candidates:
+            sender_id = reaction.get("sender_id") or reaction.get("user_id")
+            try:
+                sender_id_int = int(sender_id)
+            except (TypeError, ValueError):
+                continue
+
+            if sender_id_int != my_user_id:
+                continue
+
+            emoji = reaction.get("emoji") or reaction.get("reaction") or "❤️"
+            reactions.append({
+                "emoji": emoji,
+                "timestamp": reaction.get("timestamp"),
+                "reaction_type": reaction.get("reaction_type") or "emoji"
+            })
+
+        return reactions
     
     def unsend_messages(
         self,
@@ -143,7 +179,11 @@ class InstagramClient:
         
         for msg_id in message_ids:
             try:
-                self.client.direct_message_delete(thread_id, msg_id)
+                if msg_id.startswith("reaction:"):
+                    _, item_id, emoji = msg_id.split(":", 2)
+                    self.delete_reaction(thread_id, item_id, emoji)
+                else:
+                    self.client.direct_message_delete(thread_id, msg_id)
                 unsent += 1
                 time.sleep(1)  # Rate limiting
             except Exception as e:
@@ -154,3 +194,27 @@ class InstagramClient:
             "unsent": unsent,
             "failed": failed
         }
+
+    def delete_reaction(self, thread_id: str, item_id: str, emoji: str) -> None:
+        """Delete current user's emoji reaction from a DM item"""
+        payload = {
+            "item_id": item_id,
+            "reaction_type": "emoji",
+            "emoji": emoji
+        }
+
+        try:
+            self.client.private_request(
+                f"direct_v2/threads/{thread_id}/items/{item_id}/delete_reaction/",
+                data=payload,
+                with_signature=False
+            )
+        except Exception:
+            self.client.private_request(
+                "direct_v2/threads/broadcast/delete_reaction/",
+                data={
+                    "thread_id": thread_id,
+                    **payload
+                },
+                with_signature=False
+            )
