@@ -873,6 +873,22 @@ code {
     flex: 1;
 }
 
+.load-all-button .material-icons {
+    transition: transform 0.2s ease;
+}
+
+.load-all-button:disabled {
+    opacity: 0.58;
+}
+
+.load-all-button:not(:disabled):hover .material-icons {
+    transform: translateY(2px);
+}
+
+.load-all-button.is-loading .material-icons {
+    animation: rotate 1s linear infinite;
+}
+
 /* Loading Overlay */
 .loader {
     position: fixed;

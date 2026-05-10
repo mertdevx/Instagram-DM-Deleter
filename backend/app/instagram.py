@@ -27,14 +27,35 @@ class InstagramClient:
     def get_threads(self) -> List[Dict]:
         """Get DM threads - using raw API to avoid Pydantic validation issues"""
         try:
-            # Use private API method to get raw response
-            response = self.client.private_request("direct_v2/inbox/", params={"persistentBadging": "true", "use_unified_inbox": "true"})
-            
             result = []
-            if "inbox" in response and "threads" in response["inbox"]:
-                for thread_data in response["inbox"]["threads"]:
+            cursor = None
+            seen_thread_ids = set()
+
+            while True:
+                params = {
+                    "persistentBadging": "true",
+                    "use_unified_inbox": "true",
+                    "limit": "20"
+                }
+
+                if cursor:
+                    params["cursor"] = cursor
+
+                # Use private API method to get raw response
+                response = self.client.private_request("direct_v2/inbox/", params=params)
+                inbox = response.get("inbox", {})
+                threads = inbox.get("threads", [])
+
+                if not threads:
+                    break
+
+                for thread_data in threads:
                     # Extract thread info from raw JSON
                     thread_id = thread_data.get("thread_id", "")
+                    if not thread_id or thread_id in seen_thread_ids:
+                        continue
+
+                    seen_thread_ids.add(thread_id)
                     thread_title = thread_data.get("thread_title", "Unknown")
                     
                     # Get users
@@ -67,7 +88,13 @@ class InstagramClient:
                         "last_message": last_message,
                         "last_activity": thread_data.get("last_activity_at", "")
                     })
-            
+
+                cursor = inbox.get("oldest_cursor")
+                if not inbox.get("has_older") or not cursor:
+                    break
+
+                time.sleep(0.35)
+
             return result
         except Exception as e:
             print(f"Error fetching threads: {e}")
@@ -133,8 +160,8 @@ class InstagramClient:
 
         return {
             "messages": result,
-            "next_cursor": thread.get("oldest_cursor"),
-            "has_older": bool(thread.get("has_older"))
+            "next_cursor": thread.get("oldest_cursor") or response.get("oldest_cursor"),
+            "has_older": bool(thread.get("has_older") or response.get("has_older"))
         }
 
     def _extract_my_reactions(self, item: Dict, my_user_id: int) -> List[Dict]:

@@ -9,12 +9,25 @@ class App {
         this.currentThread = null;
         this.selectedMessages = new Set();
         this.allMessages = [];
+        this.threads = [];
         this.nextMessagesCursor = null;
         this.hasOlderMessages = false;
         this.isLoadingOlderMessages = false;
+        this.isLoadingAllMessages = false;
+        this.isSessionValidated = false;
         
         this.init();
-        this.checkExistingSession();
+        window.addEventListener('popstate', () => this.handleRoute());
+        this.bootstrap();
+    }
+
+    async bootstrap() {
+        if (this.sessionId) {
+            this.api.setSessionId(this.sessionId);
+            document.getElementById('sessionId').value = this.sessionId;
+        }
+
+        await this.handleRoute();
     }
     
     async checkExistingSession() {
@@ -27,6 +40,80 @@ class App {
             } catch (error) {
                 localStorage.removeItem('sessionId');
                 this.sessionId = null;
+            }
+        }
+    }
+
+    getRoute() {
+        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+        if (!path) return { name: 'dashboard' };
+        if (path === 'login') return { name: 'login' };
+        return { name: 'thread', threadId: decodeURIComponent(path) };
+    }
+
+    navigate(path, replace = false) {
+        const normalizedPath = path || '/';
+        if (window.location.pathname === normalizedPath) return;
+
+        const method = replace ? 'replaceState' : 'pushState';
+        window.history[method]({}, '', normalizedPath);
+    }
+
+    async ensureSession() {
+        if (!this.sessionId) {
+            this.navigate('/login', true);
+            this.ui.showView('sessionView');
+            return false;
+        }
+
+        this.api.setSessionId(this.sessionId);
+        if (!this.isSessionValidated) {
+            try {
+                await this.api.validateSession(this.sessionId);
+                this.isSessionValidated = true;
+            } catch (error) {
+                localStorage.removeItem('sessionId');
+                this.sessionId = null;
+                this.isSessionValidated = false;
+                this.navigate('/login', true);
+                this.ui.showView('sessionView');
+                this.ui.showToast('Stored session expired. Please connect again.', 'error');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    async handleRoute() {
+        const route = this.getRoute();
+
+        if (route.name === 'login') {
+            this.ui.showView('sessionView');
+            return;
+        }
+
+        if (!(await this.ensureSession())) {
+            return;
+        }
+
+        if (!this.threads || this.threads.length === 0) {
+            await this.loadThreads();
+        }
+
+        if (route.name === 'dashboard') {
+            this.showThreadsView(false);
+            return;
+        }
+
+        if (route.name === 'thread') {
+            const thread = this.threads.find(item => item.thread_id === route.threadId);
+            if (thread) {
+                await this.openThread(thread, false);
+            } else {
+                this.ui.showToast('Conversation not found', 'error');
+                this.navigate('/', true);
+                this.showThreadsView(false);
             }
         }
     }
@@ -54,6 +141,15 @@ class App {
         
         document.getElementById('selectAllBtn')
             .addEventListener('click', () => this.selectAllMyMessages());
+
+        document.addEventListener('click', (event) => {
+            const loadAllButton = event.target.closest('#loadAllBtn');
+            if (loadAllButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.loadAllMessages();
+            }
+        });
         
         document.getElementById('unsendBtn')
             .addEventListener('click', () => this.handleUnsend());
@@ -76,8 +172,9 @@ class App {
             const response = await this.api.validateSession(sessionId);
             this.sessionId = sessionId;
             this.api.setSessionId(sessionId);
+            this.isSessionValidated = true;
             localStorage.setItem('sessionId', sessionId);
-            
+             
             this.ui.showToast(`Welcome, ${response.user.username}!`, 'success');
             await this.loadThreads();
             this.showThreadsView();
@@ -166,27 +263,35 @@ class App {
         }
     }
     
-    async openThread(thread) {
+    async openThread(thread, updateUrl = true) {
+        if (updateUrl) {
+            this.navigate(`/${encodeURIComponent(thread.thread_id)}`);
+        }
+
         this.currentThread = thread;
         this.selectedMessages.clear();
         this.allMessages = [];
         this.nextMessagesCursor = null;
         this.hasOlderMessages = false;
         this.isLoadingOlderMessages = false;
+        this.isLoadingAllMessages = false;
+        this.updateLoadAllButton();
         this.ui.showLoader();
         
         try {
             const response = await this.api.getMessages(thread.thread_id);
             this.allMessages = this.normalizeMessages(response.messages);
             this.nextMessagesCursor = response.next_cursor || null;
-            this.hasOlderMessages = Boolean(response.has_older && this.nextMessagesCursor);
+            this.hasOlderMessages = Boolean(this.nextMessagesCursor || response.has_older);
             this.showMessagesView(thread.thread_title);
             this.renderMessages(this.allMessages, { scrollToBottom: true });
             this.updateMessagesCount();
+            this.updateLoadAllButton();
         } catch (error) {
             this.ui.showToast('Failed to load messages', 'error');
         } finally {
             this.ui.hideLoader();
+            this.updateLoadAllButton();
         }
     }
     
@@ -198,7 +303,8 @@ class App {
             !this.currentThread ||
             !this.hasOlderMessages ||
             !this.nextMessagesCursor ||
-            this.isLoadingOlderMessages
+            this.isLoadingOlderMessages ||
+            this.isLoadingAllMessages
         ) {
             return;
         }
@@ -225,13 +331,105 @@ class App {
             this.hasOlderMessages = Boolean(response.has_older && this.nextMessagesCursor);
             this.renderMessages(this.allMessages, { scrollToBottom: false });
             this.updateMessagesCount();
+            this.updateLoadAllButton();
 
             container.scrollTop = container.scrollHeight - previousScrollHeight;
         } catch (error) {
             this.ui.showToast(`Failed to load older messages: ${error.message}`, 'error');
         } finally {
             this.isLoadingOlderMessages = false;
+            this.updateLoadAllButton();
         }
+    }
+
+    async loadAllMessages() {
+        console.log('Load All DM clicked', {
+            currentThread: this.currentThread?.thread_id,
+            nextMessagesCursor: this.nextMessagesCursor,
+            hasOlderMessages: this.hasOlderMessages,
+            isLoadingAllMessages: this.isLoadingAllMessages
+        });
+
+        if (
+            !this.currentThread ||
+            this.isLoadingAllMessages
+        ) {
+            this.ui.showToast('Conversation is not ready yet', 'info');
+            return;
+        }
+
+        const container = document.getElementById('messagesList');
+        this.isLoadingAllMessages = true;
+        this.updateLoadAllButton();
+
+        try {
+            let loadedCount = 0;
+            if (!this.nextMessagesCursor) {
+                const bootstrapResponse = await this.api.getMessages(
+                    this.currentThread.thread_id,
+                    null,
+                    50
+                );
+                const bootstrapMessages = this.normalizeMessages(bootstrapResponse.messages);
+                const existingIds = new Set(this.allMessages.map(msg => msg.id));
+                const newBootstrapMessages = bootstrapMessages.filter(msg => !existingIds.has(msg.id));
+
+                this.allMessages = [...this.allMessages, ...newBootstrapMessages];
+                this.nextMessagesCursor = bootstrapResponse.next_cursor || null;
+                this.hasOlderMessages = Boolean(this.nextMessagesCursor || bootstrapResponse.has_older);
+                this.renderMessages(this.allMessages, { scrollToBottom: false });
+                this.updateMessagesCount();
+                this.updateLoadAllButton(`Preparing... ${this.allMessages.length}`);
+            }
+
+            while (this.nextMessagesCursor) {
+                const response = await this.api.getMessages(
+                    this.currentThread.thread_id,
+                    this.nextMessagesCursor,
+                    50
+                );
+                const olderMessages = this.normalizeMessages(response.messages);
+                const existingIds = new Set(this.allMessages.map(msg => msg.id));
+                const newOlderMessages = olderMessages.filter(msg => !existingIds.has(msg.id));
+
+                if (newOlderMessages.length === 0 && (!response.next_cursor || response.next_cursor === this.nextMessagesCursor)) {
+                    this.hasOlderMessages = false;
+                    this.nextMessagesCursor = null;
+                    break;
+                }
+
+                loadedCount += newOlderMessages.length;
+                this.allMessages = [...newOlderMessages, ...this.allMessages];
+                this.nextMessagesCursor = response.next_cursor || null;
+                this.hasOlderMessages = Boolean(this.nextMessagesCursor);
+                this.renderMessages(this.allMessages, { scrollToBottom: false });
+                this.updateMessagesCount();
+                this.updateLoadAllButton(`Loading... ${this.allMessages.length}`);
+
+                await new Promise(resolve => setTimeout(resolve, 350));
+            }
+
+            container.scrollTop = 0;
+            this.ui.showToast(`Loaded ${loadedCount} older message${loadedCount === 1 ? '' : 's'}`, 'success');
+        } catch (error) {
+            this.ui.showToast(`Failed to load all messages: ${error.message}`, 'error');
+        } finally {
+            this.isLoadingAllMessages = false;
+            this.updateLoadAllButton();
+        }
+    }
+
+    updateLoadAllButton(label = null) {
+        const button = document.getElementById('loadAllBtn');
+        if (!button) return;
+
+        const disabled = !this.currentThread || this.isLoadingAllMessages;
+        button.disabled = disabled;
+        button.innerHTML = `
+            <span class="material-icons">${this.isLoadingAllMessages ? 'sync' : 'download'}</span>
+            <span>${label || (this.nextMessagesCursor ? 'Load All DM' : 'Load All DM')}</span>
+        `;
+        button.classList.toggle('is-loading', this.isLoadingAllMessages);
     }
 
     normalizeMessages(messages) {
@@ -244,6 +442,7 @@ class App {
             const olderLabel = this.hasOlderMessages ? ' · scroll up for more' : '';
             countElement.textContent = `${this.allMessages.length} message${this.allMessages.length === 1 ? '' : 's'}${olderLabel}`;
         }
+        this.updateLoadAllButton();
     }
 
     renderMessages(messages, options = {}) {
@@ -461,7 +660,11 @@ class App {
         }
     }
     
-    showThreadsView() {
+    showThreadsView(updateUrl = true) {
+        if (updateUrl) {
+            this.navigate('/');
+        }
+
         this.ui.showView('threadsView');
         this.selectedMessages.clear();
     }
@@ -482,6 +685,7 @@ class App {
         
         localStorage.removeItem('sessionId');
         this.sessionId = null;
+        this.isSessionValidated = false;
         this.currentThread = null;
         this.selectedMessages.clear();
         this.threads = null;
@@ -490,6 +694,7 @@ class App {
         this.updateMessagesCount();
         
         this.ui.clearInput('sessionId');
+        this.navigate('/login', true);
         this.ui.showView('sessionView');
         this.ui.showToast('Logged out successfully', 'info');
     }
