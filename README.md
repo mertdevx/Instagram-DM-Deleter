@@ -4,7 +4,7 @@
 
 # Instagram DM Deleter
 
-### 🚀 Effortlessly delete your Instagram DM messages with a beautiful, modern interface
+### 🚀 Delete your Instagram DM messages, remove your reactions, and extract your session ID with a local Chrome extension
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -16,7 +16,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/mertdevx/Instagram-DM-Deleter?style=social)
 ![GitHub watchers](https://img.shields.io/github/watchers/mertdevx/Instagram-DM-Deleter?style=social)
 
-[Features](#-features) • [Demo](#-demo) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
+[Features](#-features) • [Chrome Extension](#-chrome-extension) • [Quick Start](#-quick-start) • [Project Structure](#-project-structure) • [API Documentation](#-api-documentation)
 
 </div>
 
@@ -24,7 +24,7 @@
 
 ## 🎯 Why This Tool?
 
-Ever sent a message you regret? Want to clean up your DM history? This tool makes it **simple, fast, and secure** to delete your Instagram messages without any hassle.
+Ever sent a message you regret? Want to clean up your DM history or remove emoji reactions you added to other people’s messages? This tool makes it **simple, fast, and local-first** to manage your Instagram DM cleanup flow.
 
 <div align="center">
 
@@ -49,17 +49,17 @@ docker-compose up -d
 ### 🔐 **Secure Authentication**
 - Session ID based login
 - No password storage
-- Your credentials stay safe
+- Companion Chrome extension for session ID extraction
 
 ### 💬 **Smart Conversation Management**
 - View all DM threads
 - Real-time search & filter
-- Clean, intuitive interface
+- Load older messages by scrolling upward
 
 ### 🎯 **Selective Deletion**
 - Choose specific messages
 - Bulk operations support
-- Only your messages
+- Remove your own emoji reactions from other users’ messages
 
 </td>
 <td width="50%">
@@ -70,14 +70,19 @@ docker-compose up -d
 - Instant response times
 
 ### 🎨 **Beautiful UI**
-- Modern, responsive design
-- Instagram-like interface
+- Enterprise-inspired responsive design
+- Conversation and message counters
 - Mobile-friendly
 
 ### 🐳 **Docker Ready**
 - One-command deployment
 - No complex setup
 - Works everywhere
+
+### 🧩 **Chrome Extension**
+- Manifest V3 extension included
+- Local popup UI
+- PNG + SVG project icon assets
 
 </td>
 </tr>
@@ -146,14 +151,46 @@ docker-compose up -d
 
 ---
 
+## 🧩 Chrome Extension
+
+The project now includes a local Manifest V3 Chrome extension under [`extensions/`](extensions/) for quickly extracting the Instagram `sessionid` cookie.
+
+### Extension Highlights
+
+- Published name: **Instagram Session ID Extractor**
+- In-app branding: **Instagram DM Deleter**
+- Reads only the `sessionid` cookie from `https://www.instagram.com/*`
+- No remote code, CDN scripts, or external services
+- Includes enterprise-style SVG and PNG icon assets
+
+### Extension Files
+
+```text
+extensions/
+├── icon.svg             # Source project icon used in README
+├── icon-16.png          # Chrome extension icon
+├── icon-32.png          # Chrome extension icon
+├── icon-48.png          # Popup logo / toolbar icon
+├── icon-128.png         # Chrome Web Store icon
+├── manifest.json        # Manifest V3 metadata and permissions
+├── popup.html           # Self-contained popup UI
+├── popup.js             # Cookie reading and clipboard logic
+└── _metadata/           # Chrome-generated metadata when packaged
+```
+
+> The manifest uses PNG icons for Chrome compatibility, while the SVG is kept as the source project icon.
+
+---
+
 ## 🏗️ Architecture
 
 <div align="center">
 
 ```mermaid
 graph LR
-    A[🌐 Frontend<br/>Nginx] -->|API Calls| B[⚡ Backend<br/>FastAPI]
-    B -->|Instagram API| C[📱 Instagram]
+    E[🧩 Chrome Extension<br/>Session ID Extractor] -->|Copy sessionid| A[🌐 Frontend<br/>Nginx]
+    A -->|API Calls| B[⚡ Backend<br/>FastAPI]
+    B -->|Instagram Private API| C[📱 Instagram]
     
     style A fill:#61dafb
     style B fill:#009688
@@ -213,11 +250,22 @@ Instagram-DM-Deleter/
 ├── ⚡ backend/
 │   ├── app/
 │   │   ├── main.py            # FastAPI application
-│   │   ├── instagram.py       # Instagram API wrapper
+│   │   ├── instagram.py       # Instagram API wrapper, pagination, reactions
 │   │   └── models.py          # Pydantic models
 │   ├── requirements.txt       # Python dependencies
 │   ├── Dockerfile             # Backend container
 │   └── .dockerignore
+│
+├── 🧩 extensions/
+│   ├── manifest.json          # Chrome Manifest V3 configuration
+│   ├── popup.html             # Extension popup interface
+│   ├── popup.js               # Cookie extraction and clipboard logic
+│   ├── icon.svg               # Source project icon
+│   ├── icon-16.png            # Extension icon asset
+│   ├── icon-32.png            # Extension icon asset
+│   ├── icon-48.png            # Extension icon asset
+│   ├── icon-128.png           # Extension icon asset
+│   └── _metadata/             # Generated extension metadata
 │
 ├── 🐳 docker-compose.yml      # Multi-container setup
 ├── 🔧 .github/
@@ -285,22 +333,51 @@ X-Session-ID: your_session_id
 ### Get Messages
 
 ```http
-GET /api/threads/{thread_id}/messages
+GET /api/threads/{thread_id}/messages?limit=20&cursor=optional_cursor
 X-Session-ID: your_session_id
 ```
 
-### Delete Messages
+**Response:**
+```json
+{
+  "success": true,
+  "messages": [
+    {
+      "id": "item_id",
+      "user_id": 123456789,
+      "user_name": "username",
+      "text": "Message text",
+      "timestamp": 1710000000,
+      "is_mine": true,
+      "my_reactions": [],
+      "has_my_reactions": false
+    }
+  ],
+  "next_cursor": "older_messages_cursor",
+  "has_older": true
+}
+```
+
+Use `next_cursor` to load older messages when scrolling upward.
+
+### Unsend Messages & Remove Reactions
 
 ```http
-POST /api/messages/delete
+POST /api/messages/unsend
 X-Session-ID: your_session_id
 Content-Type: application/json
 
 {
   "thread_id": "340282366841710300949128135266365332153",
-  "message_ids": ["msg_1", "msg_2", "msg_3"]
+  "message_ids": [
+    "msg_1",
+    "msg_2",
+    "reaction:target_item_id:❤️"
+  ]
 }
 ```
+
+Reaction IDs use the `reaction:<message_item_id>:<emoji>` format and remove reactions made by the current user on another user’s message.
 
 **Response:**
 ```json
