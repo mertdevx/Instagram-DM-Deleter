@@ -10,6 +10,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Available-14B8A6.svg)](https://chromewebstore.google.com/detail/instagram-session-id-extr/baddfoiaccpbmcefgoepoopnmompackc)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ![GitHub stars](https://img.shields.io/github/stars/mertdevx/Instagram-DM-Deleter?style=social)
@@ -166,7 +167,13 @@ docker compose up --build
 
 ## 🧩 Chrome Extension
 
-The project now includes a local Manifest V3 Chrome extension under [`extensions/`](extensions/) for quickly extracting the Instagram `sessionid` cookie.
+The companion Chrome extension is now published on the Chrome Web Store and is also included locally under [`extensions/`](extensions/) for development.
+
+<div align="center">
+
+[![Install from Chrome Web Store](https://img.shields.io/badge/Install%20Extension-Chrome%20Web%20Store-14B8A6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/instagram-session-id-extr/baddfoiaccpbmcefgoepoopnmompackc)
+
+</div>
 
 ### Extension Highlights
 
