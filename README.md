@@ -29,6 +29,12 @@ Ever sent a message you regret? Want to clean up your DM history or remove emoji
 
 <div align="center">
 
+[![Install from Chrome Web Store](https://img.shields.io/badge/Install%20Extension-Chrome%20Web%20Store-14B8A6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/instagram-session-id-extr/baddfoiaccpbmcefgoepoopnmompackc)
+
+</div>
+
+<div align="center">
+
 ### ⚡ One Docker Command to Rule Them All
 
 ```bash
