@@ -191,8 +191,11 @@ body {
     font-size: 13px;
 }
 
-.view.hidden {
-    display: none;
+.hidden,
+[hidden],
+.view.hidden,
+#unsendJobPanel.hidden {
+    display: none !important;
 }
 
 @keyframes fadeIn {
@@ -889,6 +892,283 @@ code {
     animation: rotate 1s linear infinite;
 }
 
+.transcript-button .material-icons {
+    color: var(--md-primary);
+}
+
+.transcript-button:disabled {
+    opacity: 0.55;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(10, 37, 64, 0.54);
+    backdrop-filter: blur(10px);
+}
+
+.modal-card {
+    position: relative;
+    width: min(720px, 100%);
+    border-radius: 26px;
+    background: #ffffff;
+    border: 1px solid var(--enterprise-line);
+    box-shadow: 0 34px 90px rgba(10, 37, 64, 0.26);
+}
+
+.transcript-modal-card {
+    padding: 30px;
+}
+
+.modal-close-button {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: #f6f9fc;
+    color: var(--enterprise-muted);
+    cursor: pointer;
+}
+
+.modal-close-button:hover {
+    color: var(--enterprise-navy);
+    background: #eef0ff;
+}
+
+.modal-header {
+    padding-right: 48px;
+    margin-bottom: 24px;
+}
+
+.modal-kicker {
+    display: inline-flex;
+    margin-bottom: 10px;
+    color: var(--md-primary);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.modal-header h3 {
+    color: var(--enterprise-navy);
+    font-size: 30px;
+    letter-spacing: -0.04em;
+    margin: 0 0 8px;
+}
+
+.modal-header p {
+    color: var(--enterprise-muted);
+    margin: 0;
+}
+
+.transcript-format-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.transcript-format-card {
+    min-height: 170px;
+    padding: 20px;
+    border: 1px solid var(--enterprise-line);
+    border-radius: 18px;
+    background: #f8fafc;
+    color: var(--enterprise-navy);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.transcript-format-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(99, 91, 255, 0.36);
+    box-shadow: 0 20px 45px rgba(10, 37, 64, 0.12);
+}
+
+.transcript-format-card .material-icons {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    background: #eef0ff;
+    color: var(--md-primary);
+}
+
+.transcript-format-card strong,
+.transcript-format-card small {
+    display: block;
+}
+
+.transcript-format-card strong {
+    margin-bottom: 6px;
+    font-size: 17px;
+}
+
+.transcript-format-card small {
+    color: var(--enterprise-muted);
+    line-height: 1.5;
+}
+
+.modal-note {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 16px;
+    background: #f6f9fc;
+    color: var(--enterprise-muted);
+    font-size: 13px;
+}
+
+.modal-note .material-icons {
+    color: var(--md-primary);
+    font-size: 20px;
+}
+
+.unsend-job-panel {
+    margin: 0 var(--spacing-lg) var(--spacing-lg);
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(10, 37, 64, 0.98), rgba(32, 49, 91, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(10, 37, 64, 0.22);
+    color: #ffffff;
+}
+
+.unsend-job-panel.hidden {
+    display: none !important;
+}
+
+.job-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.job-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.job-panel-icon {
+    width: 40px;
+    height: 40px;
+    display: grid !important;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #7dd3fc;
+    font-size: 22px !important;
+}
+
+.job-panel-header strong,
+.job-panel-header span {
+    display: block;
+}
+
+.job-panel-header strong {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+}
+
+.job-panel-header span {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.job-cancel-button {
+    flex: 0 0 auto !important;
+    height: 38px !important;
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.10) !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    box-shadow: none !important;
+}
+
+.job-cancel-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.job-progress-track {
+    width: 100%;
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.job-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #22d3ee, #14b8a6, #a7f3d0);
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.42);
+    transition: width 0.35s ease;
+}
+
+.job-progress-bar.is-active {
+    background-size: 180% 100%;
+    animation: progressShimmer 1.2s ease-in-out infinite;
+}
+
+.job-failed-list {
+    margin-top: var(--spacing-md);
+    max-height: 160px;
+    overflow: auto;
+}
+
+.job-failed-list strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #fecaca;
+    font-size: 13px;
+}
+
+.job-failed-item {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+    background: rgba(248, 113, 113, 0.14);
+    border: 1px solid rgba(248, 113, 113, 0.22);
+    color: #fee2e2;
+    font-size: 12px;
+}
+
+.job-failed-item small {
+    color: #fecaca;
+    opacity: 0.78;
+}
+
+@keyframes progressShimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 180% 50%;
+    }
+}
+
 /* Loading Overlay */
 .loader {
     position: fixed;
@@ -1074,6 +1354,24 @@ code {
     
     .actions-bar {
         flex-direction: column;
+    }
+
+    .modal-overlay {
+        padding: 14px;
+    }
+
+    .transcript-modal-card {
+        max-height: calc(100vh - 28px);
+        overflow: auto;
+        padding: 22px;
+    }
+
+    .transcript-format-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .transcript-format-card {
+        min-height: auto;
     }
     
     .toast-container {

@@ -222,6 +222,15 @@ class InstagramClient:
             "failed": failed
         }
 
+    def unsend_message_or_reaction(self, thread_id: str, message_id: str) -> None:
+        """Unsend one message or remove one reaction selection"""
+        if message_id.startswith("reaction:"):
+            _, item_id, emoji = message_id.split(":", 2)
+            self.delete_reaction(thread_id, item_id, emoji)
+            return
+
+        self.client.direct_message_delete(thread_id, message_id)
+
     def delete_reaction(self, thread_id: str, item_id: str, emoji: str) -> None:
         """Delete current user's emoji reaction from a DM item"""
         payload = {

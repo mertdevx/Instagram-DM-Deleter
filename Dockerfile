@@ -4,6 +4,8 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends nginx supervisor curl \
+    && rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf \
+    && rm -f /usr/share/nginx/html/index.html /var/www/html/index.nginx-debian.html /var/www/html/index.html \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt /app/backend/requirements.txt

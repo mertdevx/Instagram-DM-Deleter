@@ -62,4 +62,14 @@ export class API {
             })
         });
     }
+
+    async getUnsendJob(jobId) {
+        return this.request(`/api/jobs/${jobId}`);
+    }
+
+    async cancelUnsendJob(jobId) {
+        return this.request(`/api/jobs/${jobId}/cancel`, {
+            method: 'POST'
+        });
+    }
 }

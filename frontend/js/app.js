@@ -15,6 +15,10 @@ class App {
         this.isLoadingOlderMessages = false;
         this.isLoadingAllMessages = false;
         this.isSessionValidated = false;
+        this.activeUnsendJobId = null;
+        this.activeUnsendJobThreadId = null;
+        this.unsendJobPollTimer = null;
+        this.hasRenderedUnsendJob = false;
         
         this.init();
         window.addEventListener('popstate', () => this.handleRoute());
@@ -142,6 +146,23 @@ class App {
         document.getElementById('selectAllBtn')
             .addEventListener('click', () => this.selectAllMyMessages());
 
+        document.getElementById('downloadTranscriptBtn')
+            .addEventListener('click', () => this.openTranscriptModal());
+
+        document.getElementById('closeTranscriptModalBtn')
+            .addEventListener('click', () => this.closeTranscriptModal());
+
+        document.getElementById('transcriptModal')
+            .addEventListener('click', (event) => {
+                if (event.target.id === 'transcriptModal') {
+                    this.closeTranscriptModal();
+                }
+            });
+
+        document.querySelectorAll('[data-transcript-format]').forEach(button => {
+            button.addEventListener('click', () => this.downloadTranscript(button.dataset.transcriptFormat));
+        });
+
         document.addEventListener('click', (event) => {
             const loadAllButton = event.target.closest('#loadAllBtn');
             if (loadAllButton) {
@@ -154,8 +175,20 @@ class App {
         document.getElementById('unsendBtn')
             .addEventListener('click', () => this.handleUnsend());
 
+        document.getElementById('cancelJobBtn')
+            .addEventListener('click', () => this.cancelActiveUnsendJob());
+
         document.getElementById('messagesList')
             .addEventListener('scroll', () => this.handleMessagesScroll());
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                this.closeTranscriptModal();
+            }
+        });
+
+        this.hideJobPanel();
+        this.updateTranscriptButton();
     }
     
     async handleConnect() {
@@ -263,19 +296,26 @@ class App {
         }
     }
     
-    async openThread(thread, updateUrl = true) {
+    async openThread(thread, updateUrl = true, options = {}) {
         if (updateUrl) {
             this.navigate(`/${encodeURIComponent(thread.thread_id)}`);
         }
 
+        const preserveJobPanel = Boolean(options.preserveJobPanel);
         this.currentThread = thread;
         this.selectedMessages.clear();
+        if (!preserveJobPanel) {
+            this.hideJobPanel();
+            this.hasRenderedUnsendJob = false;
+        }
         this.allMessages = [];
         this.nextMessagesCursor = null;
         this.hasOlderMessages = false;
         this.isLoadingOlderMessages = false;
         this.isLoadingAllMessages = false;
         this.updateLoadAllButton();
+        this.updateTranscriptButton();
+        this.closeTranscriptModal();
         this.ui.showLoader();
         
         try {
@@ -432,6 +472,18 @@ class App {
         button.classList.toggle('is-loading', this.isLoadingAllMessages);
     }
 
+    updateTranscriptButton() {
+        const button = document.getElementById('downloadTranscriptBtn');
+        if (!button) return;
+
+        const count = this.allMessages.length;
+        button.disabled = !this.currentThread || count === 0;
+        button.innerHTML = `
+            <span class="material-icons">description</span>
+            <span>Transcript (${count})</span>
+        `;
+    }
+
     normalizeMessages(messages) {
         return [...messages].reverse();
     }
@@ -443,6 +495,195 @@ class App {
             countElement.textContent = `${this.allMessages.length} message${this.allMessages.length === 1 ? '' : 's'}${olderLabel}`;
         }
         this.updateLoadAllButton();
+        this.updateTranscriptButton();
+    }
+
+    openTranscriptModal() {
+        if (!this.currentThread || this.allMessages.length === 0) {
+            this.ui.showToast('No loaded messages to export', 'info');
+            return;
+        }
+
+        const modal = document.getElementById('transcriptModal');
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        modal.classList.remove('hidden');
+    }
+
+    closeTranscriptModal() {
+        const modal = document.getElementById('transcriptModal');
+        if (!modal) return;
+
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        modal.classList.add('hidden');
+    }
+
+    getTranscriptPayload() {
+        const exportedAt = new Date().toISOString();
+        return {
+            exported_at: exportedAt,
+            thread: {
+                thread_id: this.currentThread?.thread_id || '',
+                title: this.currentThread?.thread_title || 'Conversation',
+                message_count_loaded: this.allMessages.length,
+                has_more_messages: this.hasOlderMessages
+            },
+            messages: this.allMessages.map((message, index) => ({
+                index: index + 1,
+                id: message.id || '',
+                sender: message.is_mine ? 'You' : (message.user_name || 'User'),
+                user_id: message.user_id || '',
+                is_mine: Boolean(message.is_mine),
+                text: message.text || '',
+                timestamp: message.timestamp || null,
+                datetime: this.getIsoTime(message.timestamp),
+                my_reactions: message.my_reactions || []
+            }))
+        };
+    }
+
+    downloadTranscript(format) {
+        if (!['json', 'html', 'xml'].includes(format)) return;
+        if (!this.currentThread || this.allMessages.length === 0) {
+            this.ui.showToast('No loaded messages to export', 'info');
+            return;
+        }
+
+        const payload = this.getTranscriptPayload();
+        const builders = {
+            json: () => ({
+                content: JSON.stringify(payload, null, 2),
+                mime: 'application/json;charset=utf-8'
+            }),
+            html: () => ({
+                content: this.buildTranscriptHtml(payload),
+                mime: 'text/html;charset=utf-8'
+            }),
+            xml: () => ({
+                content: this.buildTranscriptXml(payload),
+                mime: 'application/xml;charset=utf-8'
+            })
+        };
+
+        const { content, mime } = builders[format]();
+        const filename = `${this.slugify(payload.thread.title || payload.thread.thread_id)}-transcript.${format}`;
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        this.closeTranscriptModal();
+        this.ui.showToast(`Transcript downloaded as ${format.toUpperCase()}`, 'success');
+    }
+
+    buildTranscriptHtml(payload) {
+        const rows = payload.messages.map(message => {
+            const reactions = message.my_reactions.length > 0
+                ? `<div class="reactions">Your reactions: ${message.my_reactions.map(reaction => this.escapeHtml(reaction.emoji || '')).join(' ')}</div>`
+                : '';
+
+            return `
+            <article class="message ${message.is_mine ? 'mine' : 'theirs'}">
+                <header>
+                    <strong>${this.escapeHtml(message.sender)}</strong>
+                    <time datetime="${this.escapeHtml(message.datetime || '')}">${this.escapeHtml(message.datetime || '')}</time>
+                </header>
+                <p>${this.escapeHtml(message.text || '(No text)')}</p>
+                ${reactions}
+            </article>
+        `;
+        }).join('\n');
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.escapeHtml(payload.thread.title)} Transcript</title>
+    <style>
+        body { font-family: Inter, Arial, sans-serif; margin: 0; background: #f6f9fc; color: #0a2540; }
+        main { max-width: 920px; margin: 0 auto; padding: 32px 18px; }
+        .header { margin-bottom: 24px; padding: 24px; border-radius: 18px; background: #ffffff; border: 1px solid #e6ebf1; }
+        .header h1 { margin: 0 0 8px; font-size: 28px; }
+        .header p { margin: 0; color: #425466; }
+        .message { margin: 12px 0; padding: 16px; border-radius: 16px; border: 1px solid #e6ebf1; background: #ffffff; }
+        .message.mine { background: #eef0ff; margin-left: 12%; }
+        .message.theirs { margin-right: 12%; }
+        .message header { display: flex; justify-content: space-between; gap: 16px; color: #425466; font-size: 13px; }
+        .message p { margin: 10px 0 0; white-space: pre-wrap; line-height: 1.55; }
+        .reactions { margin-top: 10px; color: #9a3412; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="header">
+            <h1>${this.escapeHtml(payload.thread.title)}</h1>
+            <p>${payload.thread.message_count_loaded} loaded messages · Exported ${this.escapeHtml(payload.exported_at)}</p>
+        </section>
+        ${rows}
+    </main>
+</body>
+</html>`;
+    }
+
+    buildTranscriptXml(payload) {
+        const messages = payload.messages.map(message => {
+            const reactions = message.my_reactions.map(reaction => `
+            <reaction>${this.escapeXml(reaction.emoji || '')}</reaction>`).join('');
+
+            return `
+    <message index="${message.index}" id="${this.escapeXml(message.id)}" is_mine="${message.is_mine}">
+        <sender>${this.escapeXml(message.sender)}</sender>
+        <user_id>${this.escapeXml(String(message.user_id || ''))}</user_id>
+        <timestamp>${this.escapeXml(String(message.timestamp || ''))}</timestamp>
+        <datetime>${this.escapeXml(message.datetime || '')}</datetime>
+        <text>${this.escapeXml(message.text || '')}</text>
+        <my_reactions>${reactions}
+        </my_reactions>
+    </message>`;
+        }).join('');
+
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<transcript exported_at="${this.escapeXml(payload.exported_at)}">
+    <thread id="${this.escapeXml(payload.thread.thread_id)}">
+        <title>${this.escapeXml(payload.thread.title)}</title>
+        <message_count_loaded>${payload.thread.message_count_loaded}</message_count_loaded>
+        <has_more_messages>${payload.thread.has_more_messages}</has_more_messages>
+    </thread>
+    <messages>${messages}
+    </messages>
+</transcript>`;
+    }
+
+    getIsoTime(timestamp) {
+        if (!timestamp) return '';
+        const normalizedTimestamp = typeof timestamp === 'string'
+            ? Date.parse(timestamp)
+            : timestamp * 1000;
+        const date = new Date(normalizedTimestamp);
+        return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+    }
+
+    slugify(value) {
+        return String(value || 'instagram-dm')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'instagram-dm';
+    }
+
+    escapeXml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
     }
 
     renderMessages(messages, options = {}) {
@@ -618,8 +859,130 @@ class App {
     
     updateUnsendButton() {
         const count = this.selectedMessages.size;
-        this.ui.setButtonState('unsendBtn', count === 0, `Unsend Selected (${count})`);
+        this.ui.setButtonState('unsendBtn', count === 0 || Boolean(this.activeUnsendJobId), `Unsend Selected (${count})`);
         this.updateMessagesCount();
+    }
+
+    showJobPanel() {
+        const panel = document.getElementById('unsendJobPanel');
+        if (!panel) return;
+
+        panel.hidden = false;
+        panel.setAttribute('aria-hidden', 'false');
+        panel.classList.remove('hidden');
+    }
+
+    hideJobPanel() {
+        const panel = document.getElementById('unsendJobPanel');
+        if (!panel) return;
+
+        panel.hidden = true;
+        panel.setAttribute('aria-hidden', 'true');
+        panel.classList.add('hidden');
+        document.getElementById('jobStatusText').textContent = '';
+        document.getElementById('jobProgressText').textContent = '';
+        document.getElementById('jobProgressBar').style.width = '0%';
+        document.getElementById('jobProgressBar').classList.remove('is-active');
+        document.getElementById('jobProgressTrack').setAttribute('aria-valuenow', '0');
+        document.getElementById('jobFailedList').innerHTML = '';
+    }
+
+    renderJobProgress(job) {
+        if (!job || !job.job_id) {
+            this.hideJobPanel();
+            return;
+        }
+
+        if (this.currentThread && job.thread_id && this.currentThread.thread_id !== job.thread_id) {
+            this.hideJobPanel();
+            return;
+        }
+
+        this.hasRenderedUnsendJob = true;
+        this.showJobPanel();
+        const percent = job.total > 0 ? Math.round((job.processed / job.total) * 100) : 0;
+        const statusLabel = job.status.charAt(0).toUpperCase() + job.status.slice(1);
+        const progressBar = document.getElementById('jobProgressBar');
+        const progressTrack = document.getElementById('jobProgressTrack');
+
+        document.getElementById('jobStatusText').textContent = `${statusLabel} unsend job`;
+        document.getElementById('jobProgressText').textContent = `${percent}% · ${job.processed} / ${job.total} processed · ${job.unsent} unsent · ${job.failed} failed`;
+        progressBar.style.width = `${percent}%`;
+        progressBar.classList.toggle('is-active', ['queued', 'running'].includes(job.status));
+        progressTrack.setAttribute('aria-valuenow', String(percent));
+        document.getElementById('cancelJobBtn').disabled = !['queued', 'running'].includes(job.status);
+
+        const failedList = document.getElementById('jobFailedList');
+        if (job.failed_items && job.failed_items.length > 0) {
+            failedList.innerHTML = `
+                <strong>Failed items</strong>
+                ${job.failed_items.slice(-20).map(item => `
+                    <div class="job-failed-item">
+                        <span>${this.escapeHtml(item.message_id || 'unknown')}</span>
+                        <small>${this.escapeHtml(item.error || 'Unknown error')}</small>
+                    </div>
+                `).join('')}
+            `;
+        } else {
+            failedList.innerHTML = '';
+        }
+    }
+
+    startJobPolling(jobId, threadId = null) {
+        this.stopJobPolling();
+        this.activeUnsendJobId = jobId;
+        this.activeUnsendJobThreadId = threadId || this.currentThread?.thread_id || null;
+        this.updateUnsendButton();
+
+        const poll = async () => {
+            if (!this.activeUnsendJobId) return;
+
+            try {
+                const response = await this.api.getUnsendJob(this.activeUnsendJobId);
+                const job = response.job;
+                this.renderJobProgress(job);
+
+                if (['completed', 'failed', 'cancelled'].includes(job.status)) {
+                    const finishedJob = job;
+                    this.stopJobPolling();
+                    this.activeUnsendJobId = null;
+                    this.activeUnsendJobThreadId = null;
+                    this.selectedMessages.clear();
+                    this.updateUnsendButton();
+                    await this.openThread(this.currentThread, false, { preserveJobPanel: true });
+                    this.renderJobProgress(finishedJob);
+                    this.ui.showToast(`Unsend job ${finishedJob.status}: ${finishedJob.unsent} unsent, ${finishedJob.failed} failed`, finishedJob.failed > 0 ? 'error' : 'success');
+                }
+            } catch (error) {
+                this.stopJobPolling();
+                this.activeUnsendJobId = null;
+                this.activeUnsendJobThreadId = null;
+                this.updateUnsendButton();
+                this.ui.showToast(`Failed to poll unsend job: ${error.message}`, 'error');
+            }
+        };
+
+        poll();
+        this.unsendJobPollTimer = setInterval(poll, 1500);
+    }
+
+    stopJobPolling() {
+        if (this.unsendJobPollTimer) {
+            clearInterval(this.unsendJobPollTimer);
+            this.unsendJobPollTimer = null;
+        }
+    }
+
+    async cancelActiveUnsendJob() {
+        if (!this.activeUnsendJobId) return;
+
+        try {
+            const response = await this.api.cancelUnsendJob(this.activeUnsendJobId);
+            this.renderJobProgress(response.job);
+            this.ui.showToast('Cancel requested. Current item may finish first.', 'info');
+        } catch (error) {
+            this.ui.showToast(`Failed to cancel job: ${error.message}`, 'error');
+        }
     }
     
     async handleUnsend() {
@@ -630,33 +993,17 @@ class App {
             return;
         }
         
-        this.ui.showLoader();
-        
         try {
             const response = await this.api.unsendMessages(
                 this.currentThread.thread_id,
                 Array.from(this.selectedMessages)
             );
-            
-            this.ui.showToast(
-                `Successfully unsent ${response.unsent} message${response.unsent > 1 ? 's' : ''}`,
-                'success'
-            );
-            
-            if (response.failed > 0) {
-                this.ui.showToast(
-                    `Failed to unsend ${response.failed} message${response.failed > 1 ? 's' : ''}`,
-                    'error'
-                );
-            }
-            
-            // Reload messages
-            this.selectedMessages.clear();
-            await this.openThread(this.currentThread);
+
+            this.renderJobProgress(response.job);
+            this.startJobPolling(response.job.job_id, response.job.thread_id);
+            this.ui.showToast(`Unsend job started for ${response.job.total} item${response.job.total === 1 ? '' : 's'}`, 'success');
         } catch (error) {
             this.ui.showToast(`Failed to unsend messages: ${error.message}`, 'error');
-        } finally {
-            this.ui.hideLoader();
         }
     }
     
@@ -667,6 +1014,11 @@ class App {
 
         this.ui.showView('threadsView');
         this.selectedMessages.clear();
+        this.closeTranscriptModal();
+        if (!this.activeUnsendJobId) {
+            this.hideJobPanel();
+        }
+        this.updateUnsendButton();
     }
     
     showMessagesView(title) {
@@ -687,6 +1039,12 @@ class App {
         this.sessionId = null;
         this.isSessionValidated = false;
         this.currentThread = null;
+        this.activeUnsendJobId = null;
+        this.activeUnsendJobThreadId = null;
+        this.hasRenderedUnsendJob = false;
+        this.stopJobPolling();
+        this.hideJobPanel();
+        this.closeTranscriptModal();
         this.selectedMessages.clear();
         this.threads = null;
         this.allMessages = [];

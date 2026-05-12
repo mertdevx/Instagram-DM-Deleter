@@ -167,6 +167,10 @@
                         <span class="material-icons">download</span>
                         <span>Load All DM</span>
                     </button>
+                    <button id="downloadTranscriptBtn" class="mdc-button mdc-button--outlined transcript-button" disabled>
+                        <span class="material-icons">description</span>
+                        <span>Download Transcript</span>
+                    </button>
                     <button id="selectAllBtn" class="mdc-button mdc-button--outlined">
                         <span class="material-icons">select_all</span>
                         <span>Select All My Messages</span>
@@ -175,6 +179,26 @@
                         <span class="material-icons">delete_sweep</span>
                         <span>Unsend Selected (0)</span>
                     </button>
+                </div>
+
+                <div id="unsendJobPanel" class="unsend-job-panel hidden" hidden aria-hidden="true" aria-live="polite">
+                    <div class="job-panel-header">
+                        <div class="job-panel-title">
+                            <span class="material-icons job-panel-icon">sync_alt</span>
+                            <div>
+                                <strong id="jobStatusText"></strong>
+                                <span id="jobProgressText"></span>
+                            </div>
+                        </div>
+                        <button id="cancelJobBtn" class="mdc-button mdc-button--outlined job-cancel-button">
+                            <span class="material-icons">cancel</span>
+                            <span>Cancel</span>
+                        </button>
+                    </div>
+                    <div id="jobProgressTrack" class="job-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="jobProgressBar" class="job-progress-bar" style="width: 0%;"></div>
+                    </div>
+                    <div id="jobFailedList" class="job-failed-list"></div>
                 </div>
             </div>
         </div>
@@ -191,6 +215,40 @@
 
         <!-- Toast Notifications -->
         <div id="toastContainer" class="toast-container"></div>
+
+        <div id="transcriptModal" class="modal-overlay hidden" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="transcriptModalTitle">
+            <div class="modal-card transcript-modal-card">
+                <button id="closeTranscriptModalBtn" class="modal-close-button" aria-label="Close transcript modal">
+                    <span class="material-icons">close</span>
+                </button>
+                <div class="modal-header">
+                    <span class="modal-kicker">Export conversation</span>
+                    <h3 id="transcriptModalTitle">Download transcript</h3>
+                    <p>Choose a format for the currently loaded DM messages.</p>
+                </div>
+                <div class="transcript-format-grid">
+                    <button class="transcript-format-card" data-transcript-format="json">
+                        <span class="material-icons">data_object</span>
+                        <strong>JSON</strong>
+                        <small>Structured archive for tools and backups.</small>
+                    </button>
+                    <button class="transcript-format-card" data-transcript-format="html">
+                        <span class="material-icons">article</span>
+                        <strong>HTML</strong>
+                        <small>Readable browser-friendly conversation page.</small>
+                    </button>
+                    <button class="transcript-format-card" data-transcript-format="xml">
+                        <span class="material-icons">code</span>
+                        <strong>XML</strong>
+                        <small>Portable markup for integrations.</small>
+                    </button>
+                </div>
+                <div class="modal-note">
+                    <span class="material-icons">info</span>
+                    <span>Only messages currently loaded in this DM will be included. Use Load All DM first for a full transcript.</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="/js/app.js"></script>
