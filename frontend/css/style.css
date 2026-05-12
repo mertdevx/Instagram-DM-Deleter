@@ -1037,6 +1037,87 @@ code {
     font-size: 20px;
 }
 
+.confirm-modal-card {
+    width: min(520px, 100%);
+    padding: 32px;
+    text-align: center;
+}
+
+.confirm-icon-wrap {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 18px;
+    border-radius: 18px;
+}
+
+.confirm-icon-wrap .material-icons {
+    font-size: 28px;
+}
+
+.confirm-icon-wrap--danger {
+    background: #fef2f2;
+    color: var(--md-error);
+}
+
+.confirm-icon-wrap--warning {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.confirm-icon-wrap--info {
+    background: #eef0ff;
+    color: var(--md-primary);
+}
+
+.confirm-modal-header {
+    padding-right: 0;
+    margin-bottom: 24px;
+}
+
+.confirm-modal-header h3 {
+    font-size: 28px;
+}
+
+.confirm-modal-header p {
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.65;
+}
+
+.confirm-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.confirm-modal-actions .mdc-button {
+    height: 46px;
+    justify-content: center;
+}
+
+.confirm-cancel-button {
+    background: #ffffff !important;
+}
+
+.confirm-accept-button--danger {
+    background: var(--md-error) !important;
+    color: var(--md-on-error) !important;
+    box-shadow: 0 14px 30px rgba(179, 38, 30, 0.24) !important;
+}
+
+.confirm-accept-button--warning {
+    background: #f97316 !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 30px rgba(249, 115, 22, 0.24) !important;
+}
+
+.confirm-accept-button--info {
+    background: var(--md-primary) !important;
+    color: #ffffff !important;
+}
+
 .unsend-job-panel {
     margin: 0 var(--spacing-lg) var(--spacing-lg);
     padding: 18px;
@@ -1372,6 +1453,14 @@ code {
 
     .transcript-format-card {
         min-height: auto;
+    }
+
+    .confirm-modal-card {
+        padding: 24px;
+    }
+
+    .confirm-modal-actions {
+        grid-template-columns: 1fr;
     }
     
     .toast-container {

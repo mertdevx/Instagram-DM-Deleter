@@ -19,6 +19,7 @@ class App {
         this.activeUnsendJobThreadId = null;
         this.unsendJobPollTimer = null;
         this.hasRenderedUnsendJob = false;
+        this.pendingConfirmResolve = null;
         
         this.init();
         window.addEventListener('popstate', () => this.handleRoute());
@@ -159,6 +160,19 @@ class App {
                 }
             });
 
+        document.getElementById('confirmModal')
+            .addEventListener('click', (event) => {
+                if (event.target.id === 'confirmModal') {
+                    this.resolveConfirm(false);
+                }
+            });
+
+        document.getElementById('confirmCancelBtn')
+            .addEventListener('click', () => this.resolveConfirm(false));
+
+        document.getElementById('confirmAcceptBtn')
+            .addEventListener('click', () => this.resolveConfirm(true));
+
         document.querySelectorAll('[data-transcript-format]').forEach(button => {
             button.addEventListener('click', () => this.downloadTranscript(button.dataset.transcriptFormat));
         });
@@ -183,12 +197,80 @@ class App {
 
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
+                this.resolveConfirm(false);
                 this.closeTranscriptModal();
             }
         });
 
         this.hideJobPanel();
+        this.closeConfirmModal();
         this.updateTranscriptButton();
+    }
+
+    showConfirmModal({
+        title,
+        message,
+        confirmText = 'Confirm',
+        cancelText = 'Cancel',
+        kicker = 'Confirm action',
+        icon = 'warning',
+        tone = 'danger'
+    }) {
+        const modal = document.getElementById('confirmModal');
+        const iconWrap = document.getElementById('confirmModalIconWrap');
+        const acceptButton = document.getElementById('confirmAcceptBtn');
+        const cancelButton = document.getElementById('confirmCancelBtn');
+
+        if (this.pendingConfirmResolve) {
+            this.resolveConfirm(false);
+        }
+
+        document.getElementById('confirmModalKicker').textContent = kicker;
+        document.getElementById('confirmModalTitle').textContent = title;
+        document.getElementById('confirmModalMessage').textContent = message;
+        document.getElementById('confirmModalIcon').textContent = icon;
+
+        iconWrap.className = `confirm-icon-wrap confirm-icon-wrap--${tone}`;
+        acceptButton.className = `mdc-button mdc-button--raised confirm-accept-button confirm-accept-button--${tone}`;
+        acceptButton.innerHTML = `
+            <span class="material-icons">check</span>
+            <span>${this.escapeHtml(confirmText)}</span>
+        `;
+        cancelButton.innerHTML = `
+            <span class="material-icons">close</span>
+            <span>${this.escapeHtml(cancelText)}</span>
+        `;
+
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        modal.classList.remove('hidden');
+
+        setTimeout(() => acceptButton.focus(), 0);
+
+        return new Promise(resolve => {
+            this.pendingConfirmResolve = resolve;
+        });
+    }
+
+    resolveConfirm(value) {
+        if (!this.pendingConfirmResolve) {
+            this.closeConfirmModal();
+            return;
+        }
+
+        const resolve = this.pendingConfirmResolve;
+        this.pendingConfirmResolve = null;
+        this.closeConfirmModal();
+        resolve(Boolean(value));
+    }
+
+    closeConfirmModal() {
+        const modal = document.getElementById('confirmModal');
+        if (!modal) return;
+
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        modal.classList.add('hidden');
     }
     
     async handleConnect() {
@@ -989,7 +1071,17 @@ class App {
         if (this.selectedMessages.size === 0) return;
         
         const count = this.selectedMessages.size;
-        if (!confirm(`Are you sure you want to unsend ${count} message${count > 1 ? 's' : ''}?`)) {
+        const confirmed = await this.showConfirmModal({
+            title: 'Start unsend job?',
+            message: `This will unsend ${count} selected item${count > 1 ? 's' : ''}. The job will run in batches and can be cancelled while it is running.`,
+            confirmText: 'Start unsend',
+            cancelText: 'Keep selection',
+            kicker: 'Danger zone',
+            icon: 'delete_sweep',
+            tone: 'danger'
+        });
+
+        if (!confirmed) {
             return;
         }
         
@@ -1030,8 +1122,18 @@ class App {
         this.ui.showView('messagesView');
     }
     
-    handleLogout() {
-        if (!confirm('Are you sure you want to logout?')) {
+    async handleLogout() {
+        const confirmed = await this.showConfirmModal({
+            title: 'Log out of this session?',
+            message: 'Your local session ID will be removed from this browser. You can connect again with a valid Instagram session ID.',
+            confirmText: 'Log out',
+            cancelText: 'Stay signed in',
+            kicker: 'Session control',
+            icon: 'logout',
+            tone: 'warning'
+        });
+
+        if (!confirmed) {
             return;
         }
         

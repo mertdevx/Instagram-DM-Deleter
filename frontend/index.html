@@ -249,6 +249,29 @@
                 </div>
             </div>
         </div>
+
+        <div id="confirmModal" class="modal-overlay hidden" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+            <div class="modal-card confirm-modal-card">
+                <div id="confirmModalIconWrap" class="confirm-icon-wrap confirm-icon-wrap--danger">
+                    <span id="confirmModalIcon" class="material-icons">warning</span>
+                </div>
+                <div class="modal-header confirm-modal-header">
+                    <span id="confirmModalKicker" class="modal-kicker">Confirm action</span>
+                    <h3 id="confirmModalTitle">Are you sure?</h3>
+                    <p id="confirmModalMessage">This action needs confirmation.</p>
+                </div>
+                <div class="confirm-modal-actions">
+                    <button id="confirmCancelBtn" class="mdc-button mdc-button--outlined confirm-cancel-button">
+                        <span class="material-icons">close</span>
+                        <span>Cancel</span>
+                    </button>
+                    <button id="confirmAcceptBtn" class="mdc-button mdc-button--raised confirm-accept-button confirm-accept-button--danger">
+                        <span class="material-icons">check</span>
+                        <span>Confirm</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="/js/app.js"></script>
