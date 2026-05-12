@@ -10,6 +10,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-635BFF.svg)](https://instagram-dm-deleter.onrender.com/)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Available-14B8A6.svg)](https://chromewebstore.google.com/detail/instagram-session-id-extr/baddfoiaccpbmcefgoepoopnmompackc)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
@@ -17,7 +18,15 @@
 ![GitHub forks](https://img.shields.io/github/forks/mertdevx/Instagram-DM-Deleter?style=social)
 ![GitHub watchers](https://img.shields.io/github/watchers/mertdevx/Instagram-DM-Deleter?style=social)
 
-[Features](#-features) • [Chrome Extension](#-chrome-extension) • [Quick Start](#-quick-start) • [Project Structure](#-project-structure) • [API Documentation](#-api-documentation)
+[Live Demo](https://instagram-dm-deleter.onrender.com/) • [Features](#-features) • [Chrome Extension](#-chrome-extension) • [Quick Start](#-quick-start) • [Project Structure](#-project-structure) • [API Documentation](#-api-documentation)
+
+<br>
+
+### 🌐 Live Demo
+
+Try the hosted version instantly on Render:
+
+[![Open Live Demo](https://img.shields.io/badge/Open%20Live%20Demo-instagram--dm--deleter.onrender.com-635BFF?style=for-the-badge&logo=render&logoColor=white)](https://instagram-dm-deleter.onrender.com/)
 
 </div>
 
